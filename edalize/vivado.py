@@ -97,7 +97,21 @@ class Vivado(Edatool):
     def __init__(self, edam=None, work_root=None, eda_api=None, verbose=True):
         super().__init__(edam, work_root, eda_api, verbose)
         edam["flow_options"] = edam["tool_options"]["vivado"]
-        self.vivado = Vivado_underlying(edam, work_root, verbose)
+
+        # The pre_build and post_build scripts are run by this class (see
+        # Edatool.build()), before and after make, like for the other backends.
+        # Hide them from the flow, which would otherwise also run them from the
+        # Makefile. There, pre_build is only an order-only prerequisite of the
+        # first command, so make checks the inputs of that command before the
+        # script has run, and a script that generates one of them (e.g. a
+        # source file) is too late: make stops with "No rule to make target".
+        flow_edam = dict(edam)
+        flow_edam["hooks"] = {
+            stage: scripts
+            for stage, scripts in edam.get("hooks", {}).items()
+            if stage not in ("pre_build", "post_build")
+        }
+        self.vivado = Vivado_underlying(flow_edam, work_root, verbose)
 
     def configure_main(self):
         self.vivado.configure()
@@ -124,9 +138,3 @@ class Vivado(Edatool):
             return
 
         self._run_tool("make", ["pgm"])
-
-    def build_pre(self):
-        pass
-
-    def build_post(self):
-        pass
