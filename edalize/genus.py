@@ -140,7 +140,9 @@ class Genus(Edatool):
                 if (_file_type != "vhdlSource") and (self.vlogdefine.items() != {}):
                     cmd_define = "-define {"
                     for k, v in self.vlogdefine.items():
-                        cmd_define += " {}={}".format(k, self._param_value_str(v))
+                        # Skip reddefinition of SYNTHESIS which is a reserved macro in IEEE Verilog synthesizable subset
+                        if k != "SYNTHESIS":
+                            cmd_define += " {}={}".format(k, self._param_value_str(v))
                     cmd_define += " }"
 
                 cmd += cmd_define + " " + "-library work " + f.name
